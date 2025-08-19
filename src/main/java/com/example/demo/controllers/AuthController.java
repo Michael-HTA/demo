@@ -6,7 +6,6 @@ import com.example.demo.repositories.RefreshTokenRepository;
 import com.example.demo.repositories.UserRepository;
 import com.example.demo.requests.LoginRequest;
 import com.example.demo.requests.RegisterRequest;
-import com.example.demo.requests.TokenRequest;
 import com.example.demo.services.TokenService;
 import com.example.demo.model.RefreshToken;
 import com.example.demo.model.User;
@@ -90,12 +89,15 @@ public class AuthController {
     }
 
     @PostMapping("/token/refresh")
-    public ResponseEntity<Map<String, Object>> tokenRefresh(@RequestBody TokenRequest req, Authentication auth) {
+    public ResponseEntity<Map<String, Object>> tokenRefresh(Authentication auth) {
 
         Jwt jwt = (Jwt) auth.getPrincipal();
         Long userId = jwt.getClaim("id");
 
-        if (tokenRepo.existsById(userId)) {
+        System.out.println("before the user id access");
+        System.out.println(userId);
+        if (tokenRepo.existsByUserId(userId)) {
+            System.out.println("after the user id access");
             String accessToken = tokenService.generateAccessToken(auth);
             return ResponseEntity.ok(Map.of("accessToken", accessToken));
         }
@@ -104,5 +106,16 @@ public class AuthController {
                 .body(Map.of("message", "Invalid token!"));
     }
 
-    
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, Object>> logout(Authentication auth) {
+
+        Jwt jwt = (Jwt) auth.getPrincipal();
+        Long userId = jwt.getClaim("id");
+        // if (tokenRepo.existsByUserId(userId)) {
+        System.out.println("before deleting the user");
+            tokenRepo.deleteAllByUserId(userId);
+        System.out.println("after deleted the user");
+            return ResponseEntity.ok(Map.of("msg","Logout successful"));
+        // }
+    }
 }

@@ -5,5 +5,6 @@ import com.example.demo.model.RefreshToken;
 
 
 public interface RefreshTokenRepository extends CrudRepository<RefreshToken,Long> {
-    public boolean existsByUserId(int userId);
+    public boolean existsByUserId(Long userId);
+    public int deleteAllByUserId(Long userId);
 }

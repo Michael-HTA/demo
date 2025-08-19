@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
@@ -22,8 +23,22 @@ public class TokenService {
     }
 
     public String generateToken(Authentication authentication, String tokenType, long amount, ChronoUnit unit) {
-        String email = ((User) authentication.getPrincipal()).email();
-        Long id = ((User) authentication.getPrincipal()).id();
+
+        Jwt jwt;
+        String email;
+        Long id;
+
+        if (authentication.getPrincipal() instanceof Jwt j) {
+            jwt = j;
+            email = jwt.getClaimAsString("sub");
+            id = jwt.getClaim("id");
+        } else if (authentication.getPrincipal() instanceof User u) {
+            email = u.email();
+            id = u.id();
+        } else {
+            throw new IllegalArgumentException("Unsupported principal type");
+        }
+
         Instant now = Instant.now();
         String scope = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
@@ -32,10 +47,10 @@ public class TokenService {
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("self")
                 .issuedAt(now)
-                .expiresAt(now.plus(amount, unit))   // flexible expiry
+                .expiresAt(now.plus(amount, unit)) // flexible expiry
                 .subject(email)
                 .claim("scope", scope)
-                .claim("type", tokenType)            // distinguish access vs refresh
+                .claim("type", tokenType) // distinguish access vs refresh
                 .claim("id", id)
                 .build();
 
@@ -50,4 +65,3 @@ public class TokenService {
         return generateToken(authentication, "refresh", 7, ChronoUnit.DAYS);
     }
 }
-
